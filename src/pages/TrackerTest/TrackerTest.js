@@ -16,18 +16,6 @@ export default function TrackerTest({}) {
     facingMode: "user",
   };
 
-  const WebcamCapture = () => (
-    <Webcam
-      ref={webcamRef}
-      audio={false}
-      height={600}
-      screenshotFormat="image/jpeg"
-      width={800}
-      videoConstraints={videoConstraints}
-      mirrored={true}
-    ></Webcam>
-  );
-
   const detectorConfig = {
     modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
   };
@@ -39,9 +27,11 @@ export default function TrackerTest({}) {
       detectorConfig
     );
 
+    console.log("detector", detector);
+
     setInterval(() => {
       detect(detector);
-    }, 1000 / 10);
+    }, 1000 / 30);
   };
 
   const detect = async (detector) => {
@@ -72,26 +62,25 @@ export default function TrackerTest({}) {
     const { color = "red", radius = 3 } = options;
 
     ctx.beginPath();
-    ctx.arc(keypoint.x, keypoint.y, radius, 0, 2 * Math.PI);
+    ctx.arc(
+      videoConstraints.width - keypoint.x,
+      keypoint.y,
+      radius,
+      0,
+      2 * Math.PI
+    );
     ctx.fillStyle = color;
     ctx.fill();
-};
+  };
 
-const drawSegment = (
-    [ay, ax],
-    [by, bx],
-    color,
-    scale,
-    ctx
-) => {
+  const drawSegment = ([ay, ax], [by, bx], color, ctx) => {
     ctx.beginPath();
-    ctx.moveTo(ax * scale, ay * scale);
-    ctx.lineTo(bx * scale, by * scale);
+    ctx.moveTo(videoConstraints.width - ax, ay);
+    ctx.lineTo(videoConstraints.width - bx, by);
     ctx.lineWidth = 2;
     ctx.strokeStyle = color;
     ctx.stroke();
-};
-
+  };
 
   const drawCanvas = (poses, video, videoWidth, videoHeight, canvas) => {
     const ctx = canvas.current.getContext("2d");
@@ -104,7 +93,6 @@ const drawSegment = (
 
     poses.forEach(({ keypoints }) => {
       if (keypoints[0].score > 0.2) {
-
         const leftShoulder = keypoints[5];
         const rightShoulder = keypoints[6];
 
@@ -125,52 +113,41 @@ const drawSegment = (
 
         // draw the lines between the points
         drawSegment(
-            [leftShoulder.y, leftShoulder.x],
-            [leftElbow.y, leftElbow.x],
-            "red",
-            1,
-            ctx
+          [leftShoulder.y, leftShoulder.x],
+          [leftElbow.y, leftElbow.x],
+          "red",
+          ctx
         );
         drawSegment(
-            [leftElbow.y, leftElbow.x],
-            [leftWrist.y, leftWrist.x],
-            "red",
-            1,
-            ctx
+          [leftElbow.y, leftElbow.x],
+          [leftWrist.y, leftWrist.x],
+          "red",
+          ctx
         );
 
         drawSegment(
-            [rightShoulder.y, rightShoulder.x],
-            [rightElbow.y, rightElbow.x],
-            "blue",
-            1,
-            ctx
+          [rightShoulder.y, rightShoulder.x],
+          [rightElbow.y, rightElbow.x],
+          "blue",
+          ctx
         );
         drawSegment(
-            [rightElbow.y, rightElbow.x],
-            [rightWrist.y, rightWrist.x],
-            "blue",
-            1,
-            ctx
+          [rightElbow.y, rightElbow.x],
+          [rightWrist.y, rightWrist.x],
+          "blue",
+          ctx
         );
 
         // green line between shoulders
         drawSegment(
-            [leftShoulder.y, leftShoulder.x],
-            [rightShoulder.y, rightShoulder.x],
-            "green",
-            1,
-            ctx
+          [leftShoulder.y, leftShoulder.x],
+          [rightShoulder.y, rightShoulder.x],
+          "green",
+          ctx
         );
-
-
-
       }
     });
   };
-
-    
-
 
   runPoseDetection();
 
@@ -178,18 +155,39 @@ const drawSegment = (
     <div>
       <h1>Tracker Test</h1>
       <div id="tracker-main">
-        <div id="webcam-container" className="container">
-          {<WebcamCapture />}
-        </div>
+
 
         <div id="canvas-container" className="container">
           <canvas
             ref={canvasRef}
             style={{
-              width: 800,
-              height: 600,
+              width: videoConstraints.width,
+              height: videoConstraints.height,
+              position: "absolute",
+              left: 0,
+              top: 0,
+              zIndex: 2,
             }}
           />
+        </div>
+
+        <div id="webcam-container" className="container">
+          <Webcam
+            ref={webcamRef}
+            audio={false}
+            height={videoConstraints.height}
+            screenshotFormat="image/jpeg"
+            width={videoConstraints.width}
+            videoConstraints={videoConstraints}
+            mirrored={true}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              zIndex: 1,
+            }}
+
+          ></Webcam>
         </div>
       </div>
     </div>
