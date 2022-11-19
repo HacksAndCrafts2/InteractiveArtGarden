@@ -1,3 +1,10 @@
+# Dev Notes
+
+* https://github.com/tensorflow/tfjs-models/tree/master/pose-detection/src/movenet
+* https://yarnpkg.com/package/react-router-dom
+* https://yarnpkg.com/package/react-webcam
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
