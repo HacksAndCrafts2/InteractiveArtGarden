@@ -1,6 +1,7 @@
 import { Routes, BrowserRouter, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage/HomePage";
 import TrackerTest from "./pages/TrackerTest/TrackerTest";
+import PixiTest from "./pages/PixiTest/PixiTest";
 import "./App.css";
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/tracker-test" element={<TrackerTest />} />
+          <Route path="/pixi-test" element={<PixiTest />} />
           <Route path="*" element={<HomePage /> /* <NotFound /> */} />
         </Routes>
       </BrowserRouter>
