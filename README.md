@@ -1,1 +1,1 @@
-# InteractiveArtGarden
+# interactive-art-garden
