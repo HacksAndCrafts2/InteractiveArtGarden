@@ -6,9 +6,12 @@ import * as tf from "@tensorflow/tfjs-core";
 import "@tensorflow/tfjs-backend-webgl";
 // import '@tensorflow/tfjs-backend-wasm';
 
+import IMAGES from "../../assets/Assets";
+
 export default function TrackerTest({}) {
   const webcamRef = React.useRef(null);
   const canvasRef = React.useRef(null);
+  const pompomCanvasRef = React.useRef(null);
 
   const videoConstraints = {
     width: 800,
@@ -16,9 +19,21 @@ export default function TrackerTest({}) {
     facingMode: "user",
   };
 
+  const marginTopCamera = 100;
+  const marginLeftCamera = window.innerWidth / 2 - videoConstraints.width / 2;
+
   const detectorConfig = {
     modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
   };
+
+  var leftWristToElbowDistance = 100;
+  var rightWristToElbowDistance = 100;
+
+  var leftElbow = null;
+  var rightElbow = null;
+
+  var leftWrist = null;
+  var rightWrist = null;
 
   // Main function
   const runPoseDetection = async () => {
@@ -82,7 +97,7 @@ export default function TrackerTest({}) {
     ctx.stroke();
   };
 
-  const drawCanvas = (poses, video, videoWidth, videoHeight, canvas) => {
+  const drawCanvas = async (poses, video, videoWidth, videoHeight, canvas) => {
     const ctx = canvas.current.getContext("2d");
     canvas.current.width = videoWidth;
     canvas.current.height = videoHeight;
@@ -91,16 +106,16 @@ export default function TrackerTest({}) {
     // ctx.translate(-videoWidth, 0);
     // ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
 
-    poses.forEach(({ keypoints }) => {
+    poses.forEach(async ({ keypoints }) => {
       if (keypoints[0].score > 0.2) {
         const leftShoulder = keypoints[5];
         const rightShoulder = keypoints[6];
 
-        const leftElbow = keypoints[7];
-        const rightElbow = keypoints[8];
+        leftElbow = keypoints[7];
+        rightElbow = keypoints[8];
 
-        const leftWrist = keypoints[9];
-        const rightWrist = keypoints[10];
+        leftWrist = keypoints[9];
+        rightWrist = keypoints[10];
 
         // draw the shoulders, elbows, and wrists
         drawPoint(ctx, leftShoulder, { color: "red" });
@@ -145,8 +160,56 @@ export default function TrackerTest({}) {
           "green",
           ctx
         );
+
+        leftWristToElbowDistance = Math.sqrt(
+          Math.pow(leftWrist.x - leftElbow.x, 2) +
+            Math.pow(leftWrist.y - leftElbow.y, 2)
+        );
+
+        rightWristToElbowDistance = Math.sqrt(
+          Math.pow(rightWrist.x - rightElbow.x, 2) +
+            Math.pow(rightWrist.y - rightElbow.y, 2)
+        );
+
+        drawPomPoms();
       }
     });
+  };
+
+  const drawPomPoms = async () => {
+    const ctx = pompomCanvasRef.current.getContext("2d");
+
+    // pom pom image
+    const pomPomImage = new Image();
+    const pomPomPath = await IMAGES.PomPom;
+    pomPomImage.src = pomPomPath;
+
+    // Draw pom poms on wrists
+    // scale pom pom to be 1/4 the size of the wrist to elbow distance
+
+    const scaleLeft = leftWristToElbowDistance / 4 / pomPomImage.width;
+
+    ctx.drawImage(
+      pomPomImage,
+      videoConstraints.width -
+        leftWrist.x -
+        (pomPomImage.width * scaleLeft) / 2,
+      leftWrist.y - (pomPomImage.height * scaleLeft) / 2,
+      pomPomImage.width * scaleLeft,
+      pomPomImage.height * scaleLeft
+    );
+
+    const scaleRight = rightWristToElbowDistance / 4 / pomPomImage.width;
+
+    ctx.drawImage(
+      pomPomImage,
+      videoConstraints.width -
+        rightWrist.x -
+        (pomPomImage.width * scaleRight) / 2,
+      rightWrist.y - (pomPomImage.height * scaleRight) / 2,
+      pomPomImage.width * scaleRight,
+      pomPomImage.height * scaleRight
+    );
   };
 
   runPoseDetection();
@@ -155,8 +218,6 @@ export default function TrackerTest({}) {
     <div>
       <h1>Tracker Test</h1>
       <div id="tracker-main">
-
-
         <div id="canvas-container" className="container">
           <canvas
             ref={canvasRef}
@@ -164,8 +225,22 @@ export default function TrackerTest({}) {
               width: videoConstraints.width,
               height: videoConstraints.height,
               position: "absolute",
-              left: 0,
-              top: 100,
+              left: marginLeftCamera,
+              top: marginTopCamera,
+              zIndex: 3,
+            }}
+          />
+        </div>
+
+        <div id="pompom-container" className="container">
+          <canvas
+            ref={pompomCanvasRef}
+            style={{
+              width: videoConstraints.width,
+              height: videoConstraints.height,
+              position: "absolute",
+              left: marginLeftCamera,
+              top: marginTopCamera,
               zIndex: 2,
             }}
           />
@@ -182,11 +257,10 @@ export default function TrackerTest({}) {
             mirrored={true}
             style={{
               position: "absolute",
-              left: 0,
-              top: 100,
+              left: marginLeftCamera,
+              top: marginTopCamera,
               zIndex: 1,
             }}
-
           ></Webcam>
         </div>
       </div>

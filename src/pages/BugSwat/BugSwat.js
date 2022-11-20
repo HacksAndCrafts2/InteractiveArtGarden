@@ -749,7 +749,7 @@ export default function BugSwat({}) {
   };
 
   const goToNextPage = () => {
-    window.location.href = "https://www.google.com";
+    window.location.href = "/";
   };
 
   const logVars = () => {

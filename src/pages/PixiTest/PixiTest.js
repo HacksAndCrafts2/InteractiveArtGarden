@@ -15,8 +15,8 @@ export default function PixiTest({}) {
 
   var eyesArray = [];
   var trackerPosition = {
-    x: 0,
-    y: 0,
+    x: 50,
+    y: 250,
   }
   var trackerSpeed = 10;
 
@@ -53,8 +53,8 @@ export default function PixiTest({}) {
     for (var i = 0; i < 10; i++) {
       for (var j = 0; j < 10; j++) {
         var eye = new PIXI.Sprite(eyeTexture);
-        eye.x = (i * videoConstraints.width) / 10;
-        eye.y = (j * videoConstraints.height) / 10;
+        eye.x = (i * videoConstraints.width) / 10 + 35;
+        eye.y = (j * videoConstraints.height) / 10 + 35;
         eye.width = 50;
         eye.height = 50;
 
@@ -95,17 +95,17 @@ export default function PixiTest({}) {
   const updateRotations = () => {
     // Update tracker position to bounce around the screen
     if (trackerPosition.x > videoConstraints.width) {
-      trackerSpeed = -13;
+      trackerSpeed = -10;
     } else if (trackerPosition.x < 0) {
-      trackerSpeed = 13;
+      trackerSpeed = 10;
     }
 
     trackerPosition.x += trackerSpeed;
 
     if (trackerPosition.y > videoConstraints.height) {
-      trackerSpeed = -8;
+      trackerSpeed = -10;
     } else if (trackerPosition.y < 0) {
-      trackerSpeed = 8;
+      trackerSpeed = 10;
     }
 
     trackerPosition.y += trackerSpeed;
@@ -123,7 +123,7 @@ export default function PixiTest({}) {
       var angle = Math.atan2(direction.y, direction.x);
 
       // rotate the eye to face the tracker
-      eyesArray[i].eyeSprite.rotation = angle;
+      eyesArray[i].eyeSprite.rotation = angle + Math.PI / 2;
     }
   };
 
