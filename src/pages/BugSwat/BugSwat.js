@@ -7,6 +7,8 @@ import * as PIXI from "pixi.js";
 import { Application, Sprite } from "pixi.js";
 import IMAGES from "../../assets/Assets";
 
+import "./BugSwat.css";
+
 export default function BugSwat({}) {
   const webcamRef = React.useRef(null);
   const canvasRef = React.useRef(null);
@@ -50,12 +52,8 @@ export default function BugSwat({}) {
   const maxNumberOfBugs = 5;
   var bugsToKill = 20;
 
-  var bugSprites = [];
-  var armLeftSprite = null;
-  var armRightSprite = null;
-  var plantSprite = null;
-
   var gameState = "init";
+  var gameWon = false;
   var gameTimer = 0;
   var lastBugSpawnTime = 0;
 
@@ -63,6 +61,18 @@ export default function BugSwat({}) {
 
   var bugsKilled = 0;
   var livesLeft = 3;
+
+  var scoreText = null;
+  var livesText = null;
+
+  var bugSprites = [];
+  var armLeftSprite = null;
+  var armRightSprite = null;
+  var plantSprite = null;
+
+  // other sprites
+  var winScreenSprite = null;
+  var loseScreenSprite = null;
 
   // Controls positions -------------------------------------------------------
   var armLeft = {
@@ -137,7 +147,8 @@ export default function BugSwat({}) {
         // Draw poses on the canvas
         drawCanvas(poses, video, videoWidth, videoHeight, canvasRef);
       } catch (e) {
-        console.log(e);
+        alert(e);
+        // console.log(e);
         // // go back to home page
         // window.location.href = "/";
       }
@@ -281,17 +292,23 @@ export default function BugSwat({}) {
     const ArmLeftPath = await IMAGES.ArmLeft;
     const ArmRightPath = await IMAGES.ArmRight;
     const plantPath = await IMAGES.Plant;
+    const winScreenPath = await IMAGES.WinScreen;
+    const loseScreenPath = await IMAGES.LoseScreen;
 
     // load the texture we need
     bugTexture = await PIXI.Texture.from(BugPath);
     const armLeftTexture = await PIXI.Texture.from(ArmLeftPath);
     const armRightTexture = await PIXI.Texture.from(ArmRightPath);
     const plantTexture = await PIXI.Texture.from(plantPath);
+    const winScreenTexture = await PIXI.Texture.from(winScreenPath);
+    const loseScreenTexture = await PIXI.Texture.from(loseScreenPath);
 
     // create a new Sprite using the texture
     armLeftSprite = await new Sprite(armLeftTexture);
     armRightSprite = await new Sprite(armRightTexture);
     plantSprite = await new Sprite(plantTexture);
+    winScreenSprite = await new Sprite(winScreenTexture);
+    loseScreenSprite = await new Sprite(loseScreenTexture);
 
     // armLeftSprite ------------------------------
     // Resize the armLeftSprite
@@ -341,6 +358,61 @@ export default function BugSwat({}) {
 
     app.stage.addChild(plantSprite);
 
+    // winScreenSprite ------------------------------
+    winScreenSprite.anchor.set(0.5, 0.5);
+
+    winScreenSprite.position.set(
+      videoConstraints.width / 2,
+      videoConstraints.height / 2
+    );
+
+    app.stage.addChild(winScreenSprite);
+
+    winScreenSprite.visible = false;
+
+    // loseScreenSprite ------------------------------
+
+    loseScreenSprite.anchor.set(0.5, 0.5);
+
+    loseScreenSprite.position.set(
+      videoConstraints.width / 2,
+      videoConstraints.height / 2
+    );
+
+    app.stage.addChild(loseScreenSprite);
+
+    // Make invisible
+    loseScreenSprite.visible = false;
+
+    // Score Text ------------------------------
+    scoreText = new PIXI.Text(`Bugs killed: ${bugsKilled}/${bugsToKill}`, {
+      fontFamily: "Arial",
+      fontSize: 24,
+      fill: 0x000000,
+      align: "center",
+    });
+
+    scoreText.anchor.set(0, 0);
+
+    scoreText.position.set(10, 10);
+
+    app.stage.addChild(scoreText);
+
+    // Lives Text ------------------------------
+
+    livesText = new PIXI.Text(`Lives left: ${livesLeft}`, {
+      fontFamily: "Arial",
+      fontSize: 24,
+      fill: 0x000000,
+      align: "center",
+    });
+
+    livesText.anchor.set(0, 0);
+
+    livesText.position.set(10, 40);
+
+    app.stage.addChild(livesText);
+
     // // Hand circle ------------------------------
     // // create a new Graphics
     // handCircle = new PIXI.Graphics();
@@ -364,6 +436,10 @@ export default function BugSwat({}) {
       updateGame();
     });
 
+    // Hide restart button
+    document.getElementById("restartGame").style.display = "none";
+    document.getElementById("nextPage").style.display = "none";
+
     logVars();
   };
 
@@ -386,8 +462,12 @@ export default function BugSwat({}) {
 
     // get the hand position based on the armLeftSprite wrist position and the armLeftSprite rotation
     const leftHandPos = {
-      x: armLeftSprite.x + (playerSize - handDistFromWrists) * Math.sin(armLeftSprite.rotation),
-      y: armLeftSprite.y - (playerSize - handDistFromWrists) * Math.cos(armLeftSprite.rotation),
+      x:
+        armLeftSprite.x +
+        (playerSize - handDistFromWrists) * Math.sin(armLeftSprite.rotation),
+      y:
+        armLeftSprite.y -
+        (playerSize - handDistFromWrists) * Math.cos(armLeftSprite.rotation),
     };
 
     // armRightSprite ------------------------------
@@ -404,14 +484,18 @@ export default function BugSwat({}) {
     );
 
     const rightHandPos = {
-      x: armRightSprite.x + (playerSize - handDistFromWrists) * Math.sin(armRightSprite.rotation),
-      y: armRightSprite.y - (playerSize - handDistFromWrists) * Math.cos(armRightSprite.rotation),
+      x:
+        armRightSprite.x +
+        (playerSize - handDistFromWrists) * Math.sin(armRightSprite.rotation),
+      y:
+        armRightSprite.y -
+        (playerSize - handDistFromWrists) * Math.cos(armRightSprite.rotation),
     };
 
     // Update the bugs --------------------------------------------------------
 
     if (gameState === "playing") {
-      if (bugSprites.length < maxNumberOfBugs ) {
+      if (bugSprites.length < maxNumberOfBugs) {
         // check that bug spawn time has passed
         if (Date.now() - lastBugSpawnTime > bugSpawnTime) {
           // spawn a bug
@@ -430,7 +514,7 @@ export default function BugSwat({}) {
             Math.pow(plantSprite.y - bugSprite.sprite.y, 2)
         );
 
-        if (bugSprite.status == "alive") {
+        if (bugSprite.status === "alive") {
           // Move the bug sprite from where it is towards the plant by bugSpeed pixels
           bugSprite.sprite.position.set(
             bugSprite.sprite.position.x +
@@ -442,7 +526,7 @@ export default function BugSwat({}) {
                 distance) *
                 bugSpeed
           );
-        } else if (bugSprite.status == "dead") {
+        } else if (bugSprite.status === "dead") {
           bugSprite.sprite.rotation += 0.2;
 
           // Move away from the plant by bugSpeed pixels
@@ -456,7 +540,7 @@ export default function BugSwat({}) {
                 distance) *
                 bugSpeed
           );
-        } 
+        }
 
         // UPDATE COLLISIONS ------------------------------------------------------
         // Check if the bug is off the screen
@@ -472,13 +556,14 @@ export default function BugSwat({}) {
         // Check if the bug is touching the plant
         if (
           distance < plantRadius + bugSize / 2 &&
-          bugSprite.status == "alive"
+          bugSprite.status === "alive"
         ) {
           // Kill the bug
           bugSprite.status = "exit";
 
           // reduce lives left
           livesLeft--;
+          updateStats();
         }
 
         // Check if the bug is touching the left hand
@@ -486,14 +571,16 @@ export default function BugSwat({}) {
           Math.sqrt(
             Math.pow(leftHandPos.x - bugSprite.sprite.x, 2) +
               Math.pow(leftHandPos.y - bugSprite.sprite.y, 2)
-          ) < handRadius + bugSize / 2 &&
-          bugSprite.status == "alive"
+          ) <
+            handRadius + bugSize / 2 &&
+          bugSprite.status === "alive"
         ) {
           // Kill the bug
           bugSprite.status = "dead";
 
           // increase score
           bugsKilled++;
+          updateStats();
         }
 
         // Check if the bug is touching the right hand
@@ -501,33 +588,40 @@ export default function BugSwat({}) {
           Math.sqrt(
             Math.pow(rightHandPos.x - bugSprite.sprite.x, 2) +
               Math.pow(rightHandPos.y - bugSprite.sprite.y, 2)
-          ) < handRadius + bugSize / 2 &&
-          bugSprite.status == "alive"
+          ) <
+            handRadius + bugSize / 2 &&
+          bugSprite.status === "alive"
         ) {
           // Kill the bug
           bugSprite.status = "dead";
 
           // increase score
           bugsKilled++;
+          updateStats();
         }
 
         // Check if game over
         if (livesLeft <= 0) {
-          gameState = "gameOver";
+          gameLoss();
         }
         if (bugsKilled >= bugsToKill) {
-          gameState = "gameOver";
+          gameWin();
         }
       });
 
       // for each bug if it is despawned remove it from the bugSprites array and remove it from the stage
       bugSprites.forEach((bugSprite, index) => {
-        if (bugSprite.status == "despawn") {
+        if (bugSprite.status === "despawn") {
           bugSprites.splice(index, 1);
           app.stage.removeChild(bugSprite.sprite);
         }
       });
     }
+  };
+
+  const updateStats = () => {
+    scoreText.text = `Bugs killed: ${bugsKilled}/${bugsToKill}`;
+    livesText.text = `Lives left: ${livesLeft}`;
   };
 
   const spawnBug = () => {
@@ -544,17 +638,17 @@ export default function BugSwat({}) {
 
     // random spawn at top or sides of screen
     const spawnSide = Math.floor(Math.random() * 3);
-    if (spawnSide == 0) {
+    if (spawnSide === 0) {
       // right
       bugSprite.position.set(
         videoConstraints.width + bugSize / 2,
-        Math.floor(Math.random() * videoConstraints.height / 4 * 3 )
+        Math.floor(((Math.random() * videoConstraints.height) / 4) * 3)
       );
-    } else if (spawnSide == 1) {
+    } else if (spawnSide === 1) {
       // left
       bugSprite.position.set(
         -bugSize / 2,
-        Math.floor(Math.random() * videoConstraints.height / 4 * 3 )
+        Math.floor(((Math.random() * videoConstraints.height) / 4) * 3)
       );
     } else {
       // top
@@ -588,6 +682,13 @@ export default function BugSwat({}) {
     gameTimer = Date.now();
     lastBugSpawnTime = Date.now();
 
+    updateStats();
+
+    // hide the start button
+    document.getElementById("startGame").style.display = "none";
+    // show restart button
+    document.getElementById("restartGame").style.display = "block";
+
     logVars();
   };
 
@@ -607,15 +708,40 @@ export default function BugSwat({}) {
     bugSprites = [];
 
     gameState = "playing";
-    
+
+    // Remove the Game over or the You win image if any
+    loseScreenSprite.visible = false;
+    winScreenSprite.visible = false;
+
+    updateStats();
+
     logVars();
   };
 
-  const endGame = () => {
+  const gameLoss = () => {
     // End the game loop
     gameState = "gameOver";
+    gameWon = false;
+
+    loseScreenSprite.visible = true;
 
     logVars();
+  };
+
+  const gameWin = () => {
+    // End the game loop
+    gameState = "gameOver";
+    gameWon = true;
+
+    winScreenSprite.visible = true;
+
+    document.getElementById("nextPage").style.display = "block";
+
+    logVars();
+  };
+
+  const goToNextPage = () => {
+    window.location.href = "https://www.google.com";
   };
 
   const logVars = () => {
@@ -624,6 +750,11 @@ export default function BugSwat({}) {
     bugSprites.forEach((bugSprite) => {
       console.log(bugSprite.sprite.position);
     });
+
+    console.log("bugsKilled: " + bugsKilled);
+    console.log("livesLeft: " + livesLeft);
+    console.log("gameState: " + gameState);
+    console.log("gameWon: " + gameWon);
   };
 
   return (
@@ -673,9 +804,21 @@ export default function BugSwat({}) {
             }}
           >
             <div id="pixi-main"></div>
-            <button onClick={loadStage}>Load Stage</button>
-            <button onClick={startGame}>Start Game</button>
-            <button onClick={logVars}>Log Vars</button>
+            <div id="buttons-container">
+              <button onClick={loadStage}>Load Stage</button>
+
+              <button id="startGame" onClick={startGame}>
+                Start Game
+              </button>
+              <button id="restartGame" onClick={restartGame}>
+                Restart Game
+              </button>
+              <button id="nextPage" onClick={goToNextPage}>
+                Next
+              </button>
+
+              {/* <button onClick={logVars}>Log Vars</button> */}
+            </div>
           </div>
         </div>
       </div>
