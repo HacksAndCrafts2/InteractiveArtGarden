@@ -178,6 +178,12 @@ export default function TrackerTest({}) {
 
   const drawPomPoms = async () => {
     const ctx = pompomCanvasRef.current.getContext("2d");
+    pompomCanvasRef.current.width = videoConstraints.width;
+    pompomCanvasRef.current.height = videoConstraints.height;
+
+    // clear canvas
+    ctx.clearRect(0, 0, pompomCanvasRef.current.width, pompomCanvasRef.current.height);
+
 
     // pom pom image
     const pomPomImage = new Image();
