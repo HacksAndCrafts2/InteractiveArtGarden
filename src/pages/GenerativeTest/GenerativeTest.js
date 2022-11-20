@@ -22,6 +22,7 @@ export default function GenerativeTest({}) {
       innerRadius: 40,
       rotation: 0,
       color: 0x00ff00,
+      transparency: 0.9,
     },
     flowerCenter: {
       position: {
@@ -33,6 +34,7 @@ export default function GenerativeTest({}) {
       cornerPixels: 10,
       color: 0x00ff00,
       rotation: 0,
+      transparency: 0.75,
     },
     petal: {
       count: 10,
@@ -46,6 +48,7 @@ export default function GenerativeTest({}) {
         color: 0x00ff00,
         width: 2,
       },
+      transparency: 0.55,
     },
   };
 
@@ -58,7 +61,7 @@ export default function GenerativeTest({}) {
       Math.floor(Math.random() * 360) + 1;
 
     flowerProperties.flowerCenter.radius =
-      Math.floor(Math.random() * 50) + flowerProperties.innerPattern.radius;
+      Math.floor(Math.random() * 50) + flowerProperties.innerPattern.radius + 10;
     flowerProperties.flowerCenter.sides = Math.floor(Math.random() * 10) + 5;
     flowerProperties.flowerCenter.cornerPixels =
       Math.floor(Math.random() * 10) + 5;
@@ -70,9 +73,10 @@ export default function GenerativeTest({}) {
     flowerProperties.petal.sides = Math.floor(Math.random() * 10) + 5;
     flowerProperties.petal.cornerPixels = Math.floor(Math.random() * 10) + 5;
     flowerProperties.petal.rotation = Math.floor(Math.random() * 360) + 1;
-    flowerProperties.petal.stretch = (Math.random() * 3) + 1;
-
+    flowerProperties.petal.stretch = (Math.random() * 2) + 1;
     flowerProperties.petal.outline.width = Math.floor(Math.random() * 5) + 1;
+
+    // flowerProperties.petal.transparency = Math.random() + 0.5;
 
     var colorSet = await generateColorSet();
 
@@ -180,6 +184,8 @@ export default function GenerativeTest({}) {
     );
     flowerCenter.endFill();
 
+    flowerCenter.alpha = flowerProperties.flowerCenter.transparency;
+
     // Create flower inner pattern
     var flowerInnerPattern = new PIXI.Graphics();
     flowerInnerPattern.beginFill(flowerProperties.innerPattern.color);
@@ -192,6 +198,8 @@ export default function GenerativeTest({}) {
       flowerProperties.innerPattern.rotation
     );
     flowerInnerPattern.endFill();
+
+    flowerInnerPattern.alpha = flowerProperties.innerPattern.transparency;
 
     // Create petal container
     var petalContainer = new PIXI.Container();
@@ -236,6 +244,9 @@ export default function GenerativeTest({}) {
       petalContainer.addChild(petal);
       petalContainer.addChild(petalOutline);
     }
+
+    // Change petalContainer transparency
+    petalContainer.alpha = flowerProperties.petal.transparency;
 
     // Create flower
     flower = new PIXI.Container();
