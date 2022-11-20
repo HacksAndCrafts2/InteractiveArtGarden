@@ -1,17 +1,24 @@
 import React from "react";
 import * as PIXI from 'pixi.js'
-import { Application, Assets, Sprite } from 'pixi.js';
+import { Application, Sprite } from 'pixi.js';
 import IMAGES from '../../assets/Assets';
 
 // import ArmLeft from '../../assets/ArmLeft.png';
 
 export default function PixiTest({}) {
 
+  const videoConstraints = {
+    width: 800,
+    height: 600,
+    facingMode: "user",
+  };
+
+
   // Async load the stage
   const loadStage = async () => {
     const app = await new Application({
-      width: 800,
-      height: 600,
+      width: videoConstraints.width,
+      height: videoConstraints.height,
       transparent: false,
       antialias: true,
     });
@@ -51,7 +58,7 @@ export default function PixiTest({}) {
     arm.anchor.set(0.5, 1)
 
     // move the sprite to the center of the screen
-    arm.position.set(400, 300);
+    arm.position.set(videoConstraints.width / 2, videoConstraints.height / 2);
 
     // Add the bunny to the scene we are building
     app.stage.addChild(arm);
