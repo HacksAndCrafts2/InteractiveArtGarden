@@ -19,7 +19,7 @@ import winScreen_img from '../../assets/WinScreen.png'
 import loseScreen_img from '../../assets/LoseScreen.png'
 
 
-import "./CloudChase.css";
+// import "./CloudChase.css";
 import { time } from "@tensorflow/tfjs-core";
 import { update } from "@tensorflow/tfjs-layers/dist/variables";
 

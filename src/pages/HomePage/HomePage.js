@@ -7,49 +7,6 @@ export default function HomePage({}) {
     height: 400,
   };
 
-  // var app = new PIXI.Application(800, 600, {
-  //   antialias: true,
-  //   backgroundColor: 0x1099bb,
-  // });
-
-  // var img = new Image();
-  // img.src = "https://picsum.photos/1920/108";
-
-  // var baseTexture = new PIXI.BaseTexture(img);
-  // var texture = new PIXI.Texture(baseTexture);
-  // var bg = new PIXI.Sprite(texture);
-  // document.body.appendChild(app.view);
-
-  // app.stage.interactive = true;
-
-  // var g1 = new PIXI.Graphics();
-  // g1.beginFill(0xe63946, 1);
-  // g1.drawRect(50, 100, 420, 120);
-  // g1.endFill();
-
-  // var g2 = new PIXI.Graphics();
-  // g2.beginFill(0xe63946, 1);
-  // g2.drawRect(350, 250, 120, 120);
-  // g2.endFill();
-
-  // var noise = new PIXI.filters.NoiseFilter();
-  // var textobj = new PIXI.Text("套用google正黑體", {
-  //   font: "50px cwTeXHei",
-  //   fill: "#DCC9DD",
-  // });
-  // var f = new PIXI.filters.ColorMatrixFilter();
-
-  // var blurfilter = new PIXI.filters.BlurFilter();
-  // g1.filters = [blurfilter, f];
-  // //g2.filters = [blurfilter,f];
-  // f.matrix = [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0];
-
-  // //app.stage.addChild(g1,g2);
-  // app.stage.addChild(bg);
-  // app.stage.addChild(textobj);
-  // bg.mask = textobj;
-  // // var tween = TweenMax.to(textobj, 2, { y: "280", repeat: 99, yoyo: true });
-
   return (
     <div>
       {/* Hero */}
@@ -82,10 +39,62 @@ export default function HomePage({}) {
           <Route path="/pixi-test" element={<PixiTest />} />
           <Route path="/generate-test" element={<GenerativeTest />} />
           <Route path="*" element={<HomePage /> /* <NotFound /> 
-      
-    
+              <Route path="/cloud-chase" element={<CloudChase />} />
+          <Route path="/cloud-chase2" element={<CloudChase2 />} />
+          <Route path="*" element={<HomePage /> /* <NotFound /> 
       */}
       <div class="card-deck">
+        <div className="card" style={{ width: "18rem" }}>
+          <div className="card-body">
+            <h5 className="card-title">Bug Swat</h5>
+            <p className="card-text">
+              A minigame integrating the pose-detection API with Pixi.js by
+              punching bugs to protect your plant
+            </p>
+            <a href="/bug-swat" className="btn btn-primary">
+              Go to Bug Swat
+            </a>
+          </div>
+        </div>
+
+        <div className="card" style={{ width: "18rem" }}>
+          <div className="card-body">
+            <h5 className="card-title">Generative Art</h5>
+            <p className="card-text">
+              Testing Generative art with randomly generated shapes to form
+              flowers in Pixi.js
+            </p>
+            <a href="/generate-test" className="btn btn-primary">
+              Go to Generative Art
+            </a>
+          </div>
+        </div>
+
+        <div className="card" style={{ width: "18rem" }}>
+          <div className="card-body">
+            <h5 className="card-title">CloudChase2</h5>
+            <p className="card-text">
+              CloudChase2 is a game where you harvest clouds to water your plant
+            </p>
+            <a href="/cloud-chase2" className="btn btn-primary">
+              Go to CloudChase2
+            </a>
+          </div>
+        </div>
+
+        <div className="card" style={{ width: "18rem" }}>
+          <div className="card-body">
+            <h5 className="card-title">CloudChase</h5>
+            <p className="card-text">
+              CloudChase is similar to CloudChase2 but using pose-detection
+              controls
+            </p>
+            <a href="/cloud-chase" className="btn btn-primary">
+              Go to CloudChase
+            </a>
+          </div>
+        </div>
+
         <div className="card" style={{ width: "18rem" }}>
           <div className="card-body">
             <h5 className="card-title">Tracker Test</h5>
@@ -108,31 +117,6 @@ export default function HomePage({}) {
             </p>
             <a href="/pixi-test" className="btn btn-primary">
               Go to Pixi Test
-            </a>
-          </div>
-        </div>
-
-        <div className="card" style={{ width: "18rem" }}>
-          <div className="card-body">
-            <h5 className="card-title">Bug Swat</h5>
-            <p className="card-text">
-              A minigame integrating the pose-detection API with Pixi.js
-            </p>
-            <a href="/bug-swat" className="btn btn-primary">
-              Go to Bug Swat
-            </a>
-          </div>
-        </div>
-
-        <div className="card" style={{ width: "18rem" }}>
-          <div className="card-body">
-            <h5 className="card-title">Generative Art</h5>
-            <p className="card-text">
-              Testing Generative art with randomly generated shapes to form
-              flowers in Pixi.js
-            </p>
-            <a href="/generate-test" className="btn btn-primary">
-              Go to Generative Art
             </a>
           </div>
         </div>
