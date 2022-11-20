@@ -6,6 +6,7 @@ const IMAGES = {
     "Frown": require("./Frown.png"),
     "Grass": require("./Grass.png"),
     "Plant": require("./Plant.png"),
+    "PomPom": require("./PomPom.png"),
 
     "WinScreen": require("./WinScreen.png"),
     "LoseScreen": require("./LoseScreen.png"),
