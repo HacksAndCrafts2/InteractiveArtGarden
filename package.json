@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@mediapipe/pose": "^0.5.1635988162",
+    "@pixi/graphics-extras": "^7.0.4",
     "@tensorflow-models/pose-detection": "^2.0.0",
     "@tensorflow/tfjs": "^4.0.0",
     "@tensorflow/tfjs-backend-wasm": "^4.0.0",
@@ -13,6 +14,7 @@
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "complementary-colors": "^1.0.6",
     "pixi.js": "^7.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
