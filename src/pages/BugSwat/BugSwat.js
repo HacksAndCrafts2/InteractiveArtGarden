@@ -18,10 +18,10 @@ export default function BugSwat({}) {
     facingMode: "user",
   };
 
-  const marginTopCamera = 100;
-  const marginLeftCamera = 10;
+  const marginTopCamera = 150;
+  const marginLeftCamera = window.innerWidth / 2 - videoConstraints.width - 5;
 
-  const marginTopPixi = 100;
+  const marginTopPixi = 150;
   const marginLeftPixi = marginLeftCamera + videoConstraints.width + 10;
 
   const detectorConfig = {
@@ -33,17 +33,36 @@ export default function BugSwat({}) {
   const defaultImageSize = 600;
 
   // Game variables -----------------------------------------------------------
-  const bugSize = 50;
-  const bugSpeed = 1;
-  const bugSpawnRate = 1000;
-  const bugRadius = 50;
+  // relative to the 600 x 450 video
+  const bugSize = 25;
+  const bugSpeed = 3;
+  const bugSpawnTime = 1000;
+
+  var bugTexture = null;
 
   const plantSize = 100;
+  const plantRadius = 20;
 
-  var bugSprite = null;
+  const playerSize = 100;
+  const handRadius = 15;
+  const handDistFromWrists = 20;
+
+  const maxNumberOfBugs = 5;
+  var bugsToKill = 20;
+
+  var bugSprites = [];
   var armLeftSprite = null;
   var armRightSprite = null;
   var plantSprite = null;
+
+  var gameState = "init";
+  var gameTimer = 0;
+  var lastBugSpawnTime = 0;
+
+  var app = null;
+
+  var bugsKilled = 0;
+  var livesLeft = 3;
 
   // Controls positions -------------------------------------------------------
   var armLeft = {
@@ -119,8 +138,8 @@ export default function BugSwat({}) {
         drawCanvas(poses, video, videoWidth, videoHeight, canvasRef);
       } catch (e) {
         console.log(e);
-        // refresh page
-        window.location.reload();
+        // // go back to home page
+        // window.location.href = "/";
       }
     }
   };
@@ -236,7 +255,7 @@ export default function BugSwat({}) {
   // Pixi --------------------------------------------------------------------
   // Async load the stage
   const loadStage = async () => {
-    const app = await new Application({
+    app = await new Application({
       width: videoConstraints.width,
       height: videoConstraints.height,
       transparent: false,
@@ -264,21 +283,20 @@ export default function BugSwat({}) {
     const plantPath = await IMAGES.Plant;
 
     // load the texture we need
-    const bugTexture = await PIXI.Texture.from(BugPath);
+    bugTexture = await PIXI.Texture.from(BugPath);
     const armLeftTexture = await PIXI.Texture.from(ArmLeftPath);
     const armRightTexture = await PIXI.Texture.from(ArmRightPath);
     const plantTexture = await PIXI.Texture.from(plantPath);
 
     // create a new Sprite using the texture
-    bugSprite = await new Sprite(bugTexture);
     armLeftSprite = await new Sprite(armLeftTexture);
     armRightSprite = await new Sprite(armRightTexture);
     plantSprite = await new Sprite(plantTexture);
 
     // armLeftSprite ------------------------------
     // Resize the armLeftSprite
-    armLeftSprite.width = 100;
-    armLeftSprite.height = 100;
+    armLeftSprite.width = playerSize;
+    armLeftSprite.height = playerSize;
 
     // center the sprite's anchor point
     armLeftSprite.anchor.set(0.5, 1);
@@ -293,8 +311,8 @@ export default function BugSwat({}) {
 
     // armRightSprite ------------------------------
     // Resize the armRightSprite
-    armRightSprite.width = 100;
-    armRightSprite.height = 100;
+    armRightSprite.width = playerSize;
+    armRightSprite.height = playerSize;
 
     // center the sprite's anchor point
     armRightSprite.anchor.set(0.5, 1);
@@ -306,22 +324,6 @@ export default function BugSwat({}) {
     );
 
     app.stage.addChild(armRightSprite);
-
-    // bugSprite ------------------------------
-    // Resize the bugSprite
-    bugSprite.width = bugSize;
-    bugSprite.height = bugSize;
-
-    // center the sprite's anchor point
-    bugSprite.anchor.set(0.5, 0.5);
-
-    // move the sprite to the center of the screen
-    bugSprite.position.set(
-      videoConstraints.width / 2,
-      0
-    );
-
-    app.stage.addChild(bugSprite);
 
     // plantSprite ------------------------------
     // Resize the plantSprite
@@ -339,21 +341,37 @@ export default function BugSwat({}) {
 
     app.stage.addChild(plantSprite);
 
+    // // Hand circle ------------------------------
+    // // create a new Graphics
+    // handCircle = new PIXI.Graphics();
+
+    // // set a fill and line style
+    // handCircle.beginFill(0xff0000);
+    // handCircle.lineStyle(4, 0xff0000, 1);
+
+    // // draw a circle
+    // handCircle.drawCircle(0, 0, 2);
+
+    // // set the circle's x and y position
+    // handCircle.x = 0;
+    // handCircle.y = 0;
+
+    // // add the circle to the stage
+    // app.stage.addChild(handCircle);
+
     // Listen for frame updates
     app.ticker.add(() => {
       updateGame();
     });
+
+    logVars();
   };
+
+  // var handCircle = null;
 
   const updateGame = () => {
     // UPDATE POSITIONS -------------------------------------------------------
     // armLeftSprite ------------------------------
-    // // Set the armLeft length
-    // armLeftSprite.height = armLeftSprite.width = Math.sqrt(
-    //   Math.pow(armLeft.elbow.x - armLeft.wrist.x, 2) +
-    //     Math.pow(armLeft.elbow.y - armLeft.wrist.y, 2)
-    // );
-
     // Set the angle
     armLeftSprite.rotation = Math.atan2(
       armLeft.elbow.x - armLeft.wrist.x,
@@ -365,6 +383,12 @@ export default function BugSwat({}) {
       videoConstraints.width - armLeft.wrist.x,
       armLeft.elbow.y
     );
+
+    // get the hand position based on the armLeftSprite wrist position and the armLeftSprite rotation
+    const leftHandPos = {
+      x: armLeftSprite.x + (playerSize - handDistFromWrists) * Math.sin(armLeftSprite.rotation),
+      y: armLeftSprite.y - (playerSize - handDistFromWrists) * Math.cos(armLeftSprite.rotation),
+    };
 
     // armRightSprite ------------------------------
     // Set the angle
@@ -379,27 +403,233 @@ export default function BugSwat({}) {
       armRight.elbow.y
     );
 
+    const rightHandPos = {
+      x: armRightSprite.x + (playerSize - handDistFromWrists) * Math.sin(armRightSprite.rotation),
+      y: armRightSprite.y - (playerSize - handDistFromWrists) * Math.cos(armRightSprite.rotation),
+    };
+
+    // Update the bugs --------------------------------------------------------
+
+    if (gameState === "playing") {
+      if (bugSprites.length < maxNumberOfBugs ) {
+        // check that bug spawn time has passed
+        if (Date.now() - lastBugSpawnTime > bugSpawnTime) {
+          // spawn a bug
+          spawnBug();
+
+          // reset the last bug spawn time
+          lastBugSpawnTime = Date.now();
+        }
+      }
+
+      // bugSprites ------------------------------
+      bugSprites.forEach((bugSprite) => {
+        // Get the distance between the bug and the plant
+        const distance = Math.sqrt(
+          Math.pow(plantSprite.x - bugSprite.sprite.x, 2) +
+            Math.pow(plantSprite.y - bugSprite.sprite.y, 2)
+        );
+
+        if (bugSprite.status == "alive") {
+          // Move the bug sprite from where it is towards the plant by bugSpeed pixels
+          bugSprite.sprite.position.set(
+            bugSprite.sprite.position.x +
+              ((plantSprite.position.x - bugSprite.sprite.position.x) /
+                distance) *
+                bugSpeed,
+            bugSprite.sprite.position.y +
+              ((plantSprite.position.y - bugSprite.sprite.position.y) /
+                distance) *
+                bugSpeed
+          );
+        } else if (bugSprite.status == "dead") {
+          bugSprite.sprite.rotation += 0.2;
+
+          // Move away from the plant by bugSpeed pixels
+          bugSprite.sprite.position.set(
+            bugSprite.sprite.position.x +
+              ((bugSprite.sprite.position.x - plantSprite.position.x) /
+                distance) *
+                bugSpeed,
+            bugSprite.sprite.position.y +
+              ((bugSprite.sprite.position.y - plantSprite.position.y) /
+                distance) *
+                bugSpeed
+          );
+        } 
+
+        // UPDATE COLLISIONS ------------------------------------------------------
+        // Check if the bug is off the screen
+        if (
+          bugSprite.sprite.x + bugSize / 2 < 0 ||
+          bugSprite.sprite.x - bugSize / 2 > videoConstraints.width ||
+          bugSprite.sprite.y + bugSize / 2 < 0 ||
+          bugSprite.sprite.y - bugSize / 2 > videoConstraints.height
+        ) {
+          bugSprite.status = "despawn";
+        }
+
+        // Check if the bug is touching the plant
+        if (
+          distance < plantRadius + bugSize / 2 &&
+          bugSprite.status == "alive"
+        ) {
+          // Kill the bug
+          bugSprite.status = "exit";
+
+          // reduce lives left
+          livesLeft--;
+        }
+
+        // Check if the bug is touching the left hand
+        if (
+          Math.sqrt(
+            Math.pow(leftHandPos.x - bugSprite.sprite.x, 2) +
+              Math.pow(leftHandPos.y - bugSprite.sprite.y, 2)
+          ) < handRadius + bugSize / 2 &&
+          bugSprite.status == "alive"
+        ) {
+          // Kill the bug
+          bugSprite.status = "dead";
+
+          // increase score
+          bugsKilled++;
+        }
+
+        // Check if the bug is touching the right hand
+        if (
+          Math.sqrt(
+            Math.pow(rightHandPos.x - bugSprite.sprite.x, 2) +
+              Math.pow(rightHandPos.y - bugSprite.sprite.y, 2)
+          ) < handRadius + bugSize / 2 &&
+          bugSprite.status == "alive"
+        ) {
+          // Kill the bug
+          bugSprite.status = "dead";
+
+          // increase score
+          bugsKilled++;
+        }
+
+        // Check if game over
+        if (livesLeft <= 0) {
+          gameState = "gameOver";
+        }
+        if (bugsKilled >= bugsToKill) {
+          gameState = "gameOver";
+        }
+      });
+
+      // for each bug if it is despawned remove it from the bugSprites array and remove it from the stage
+      bugSprites.forEach((bugSprite, index) => {
+        if (bugSprite.status == "despawn") {
+          bugSprites.splice(index, 1);
+          app.stage.removeChild(bugSprite.sprite);
+        }
+      });
+    }
+  };
+
+  const spawnBug = () => {
+    // create a new Sprite using the texture
     // bugSprite ------------------------------
-    // Move the bug sprite from where it is towards the plant by bugSpeed pixels
-    bugSprite.position.set(
-      bugSprite.position.x +
-        (plantSprite.position.x - bugSprite.position.x) / 100,
-      bugSprite.position.y +
-        (plantSprite.position.y - bugSprite.position.y) / 100
-    );
+    var bugSprite = new Sprite(bugTexture);
+
+    // Resize the bugSprite
+    bugSprite.width = bugSize;
+    bugSprite.height = bugSize;
+
+    // center the sprite's anchor point
+    bugSprite.anchor.set(0.5, 0.5);
+
+    // random spawn at top or sides of screen
+    const spawnSide = Math.floor(Math.random() * 3);
+    if (spawnSide == 0) {
+      // right
+      bugSprite.position.set(
+        videoConstraints.width + bugSize / 2,
+        Math.floor(Math.random() * videoConstraints.height / 4 * 3 )
+      );
+    } else if (spawnSide == 1) {
+      // left
+      bugSprite.position.set(
+        -bugSize / 2,
+        Math.floor(Math.random() * videoConstraints.height / 4 * 3 )
+      );
+    } else {
+      // top
+      bugSprite.position.set(
+        Math.floor(Math.random() * videoConstraints.width),
+        -bugSize / 2
+      );
+    }
 
     // Rotate the bug sprite towards the plant
     bugSprite.rotation = Math.atan2(
       plantSprite.position.x - bugSprite.position.x,
       bugSprite.position.y - plantSprite.position.y
     );
+
+    bugSprites.push({
+      sprite: bugSprite,
+      status: "alive",
+    });
+
+    app.stage.addChild(bugSprite);
   };
 
   loadStage();
 
+  // Game --------------------------------------------------------------------
+  const startGame = () => {
+    // Start the game loop
+    gameState = "playing";
+    // get current time in milliseconds
+    gameTimer = Date.now();
+    lastBugSpawnTime = Date.now();
+
+    logVars();
+  };
+
+  const restartGame = () => {
+    // reset game variables
+    bugsKilled = 0;
+    livesLeft = 3;
+    gameTimer = 0;
+    lastBugSpawnTime = 0;
+
+    // remove all bugs from the stage
+    bugSprites.forEach((bugSprite) => {
+      app.stage.removeChild(bugSprite.sprite);
+    });
+
+    // clear the bugSprites array
+    bugSprites = [];
+
+    gameState = "playing";
+    
+    logVars();
+  };
+
+  const endGame = () => {
+    // End the game loop
+    gameState = "gameOver";
+
+    logVars();
+  };
+
+  const logVars = () => {
+    console.log(bugSprites);
+    //print bugSprites position
+    bugSprites.forEach((bugSprite) => {
+      console.log(bugSprite.sprite.position);
+    });
+  };
+
   return (
     <div>
       <h1>Bug Swat Test</h1>
+      <p>Swat the bugs with your hands!</p>
       <div id="bug-swat-main">
         <div id="canvas-container" className="container">
           <canvas
@@ -444,6 +674,8 @@ export default function BugSwat({}) {
           >
             <div id="pixi-main"></div>
             <button onClick={loadStage}>Load Stage</button>
+            <button onClick={startGame}>Start Game</button>
+            <button onClick={logVars}>Log Vars</button>
           </div>
         </div>
       </div>
