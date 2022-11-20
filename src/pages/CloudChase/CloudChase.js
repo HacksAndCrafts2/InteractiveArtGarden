@@ -1,5 +1,11 @@
-// game imports
 import React, { useRef, useEffect } from "react";
+import Webcam from "react-webcam";
+import * as poseDetection from "@tensorflow-models/pose-detection";
+import "@tensorflow/tfjs-backend-webgl";
+
+import * as PIXI from "pixi.js";
+import { Application, Sprite } from "pixi.js";
+
 import cloud_1_img from '../../assets/img/cloud_1.png'
 import cloud_2_img from '../../assets/img/cloud_2.png'
 import gardener_img from '../../assets/img/gardener.png'
@@ -7,20 +13,21 @@ import trail_img from '../../assets/img/trail.png'
 import water1_img from '../../assets/img/wateringCan_empty.png'
 import water2_img from '../../assets/img/wateringCan_half.png'
 import water3_img from '../../assets/img/wateringCan_full.png'
-import * as PIXI from "pixi.js"
+import armLeft_img from '../../assets/ArmLeft.png'
+import armRight_img from '../../assets/ArmRight.png'
+import winScreen_img from '../../assets/WinScreen.png'
+import loseScreen_img from '../../assets/LoseScreen.png'
 
-//tracker imports
-import Webcam from "react-webcam";
-import * as poseDetection from "@tensorflow-models/pose-detection";
-import "@tensorflow/tfjs-backend-webgl";
 
-import { Application, Rectangle, Sprite } from "pixi.js";
+import "./CloudChase.css";
+import { time } from "@tensorflow/tfjs-core";
+import { update } from "@tensorflow/tfjs-layers/dist/variables";
 
-export default function CloudChase2({ }) {
-    // tracker test module
+export default function CloudChase({ }) {
     const webcamRef = useRef(null);
     const canvasRef = useRef(null);
 
+    // Constants ----------------------------------------------------------------
     const videoConstraints = {
         width: 600,
         height: 450,
@@ -32,11 +39,82 @@ export default function CloudChase2({ }) {
 
     const marginTopPixi = 150;
     const marginLeftPixi = marginLeftCamera + videoConstraints.width + 10;
+
     const detectorConfig = {
         modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
     };
 
     const framerate = 10;
+
+    const defaultImageSize = 600;
+
+    // Game variables -----------------------------------------------------------
+    // relative to the 600 x 450 video
+    const cloudWidth = 100;
+    const cloudHeight = 90;
+    const cloudWidth_st = 120;
+    const cloudHeight_st = 85;
+    const cloudSpawnTime = 4000;
+    
+
+    var cloudTexture = null;
+    var cloudStTexture = null;
+
+    const gardenerSize = 100;
+    const gardenerRadius = 20;
+
+    const playerSize = 100;
+    const handRadius = 15;
+    const handDistFromWrists = 20;
+
+    const maxNumberOfclouds = 8;
+    const maxNumberOfStClouds = 3;
+    var cloudsToCollect = 15;
+
+    var gameState = "init";
+    var gameWon = false;
+    var countDownTimer = 50;
+    var gameTimer = 0;
+    var lastcloudSpawnTime = 0;
+
+    var app = null;
+
+    var cloudsCollected = 0;
+    var randomCloud = 0;
+
+
+    var scoreText = null;
+    var countDownTimerText = null;
+
+
+    var cloudSprites = [];
+    var cloudStSprites = [];
+    var armLeftSprite = null;
+    var armRightSprite = null;
+    var gardenerSprite = null;
+
+    // other sprites
+    var winScreenSprite = null;
+    var loseScreenSprite = null;
+    var wateringCanSprite = null;
+
+    // Controls positions -------------------------------------------------------
+    var armLeft = {
+        shoulder: { x: 0, y: 0 },
+        elbow: { x: 0, y: 0 },
+        wrist: { x: 0, y: 0 },
+    };
+
+    var armRight = {
+        shoulder: { x: 0, y: 0 },
+        elbow: { x: 0, y: 0 },
+        wrist: { x: 0, y: 0 },
+    };
+
+    var cloud = {
+        x: 0,
+        y: 0,
+    };
 
     // Pose Detection --------------------------------------------------------------------
     // Main function for pose detection
@@ -69,13 +147,13 @@ export default function CloudChase2({ }) {
             webcamRef.current.video.height = videoHeight;
 
             try {
-                // Make Detections
                 const poses = await detector.estimatePoses(video);
-                //   console.log(poses);
+
                 // Draw poses on the canvas
                 drawCanvas(poses, video, videoWidth, videoHeight, canvasRef);
             } catch (e) {
-                console.log(e)
+                alert(e);
+
             }
         }
     };
@@ -109,10 +187,6 @@ export default function CloudChase2({ }) {
         canvas.current.width = videoWidth;
         canvas.current.height = videoHeight;
 
-        // // draw video
-        // ctx.translate(-videoWidth, 0);
-        // ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
-
         poses.forEach(({ keypoints }) => {
             if (keypoints[0].score > 0.2) {
                 const leftShoulder = keypoints[5];
@@ -124,10 +198,7 @@ export default function CloudChase2({ }) {
                 const leftWrist = keypoints[9];
                 const rightWrist = keypoints[10];
 
-
                 // Get points to variables -----------------------------------------------
-                // armLeft.shoulder.x = leftShoulder.x;
-                // armLeft.shoulder.y = leftShoulder.y;
 
                 armLeft.elbow.x = leftElbow.x;
                 armLeft.elbow.y = leftElbow.y;
@@ -135,16 +206,13 @@ export default function CloudChase2({ }) {
                 armLeft.wrist.x = leftWrist.x;
                 armLeft.wrist.y = leftWrist.y;
 
-                // armRight.shoulder.x = rightShoulder.x;
-                // armRight.shoulder.y = rightShoulder.y;
-
                 armRight.elbow.x = rightElbow.x;
                 armRight.elbow.y = rightElbow.y;
 
                 armRight.wrist.x = rightWrist.x;
                 armRight.wrist.y = rightWrist.y;
 
-                // draw the shoulders, elbows, and wrists
+                // draw the shoulders, elbows, and wrists -------------------------------
                 drawPoint(ctx, leftShoulder, { color: "red" });
                 drawPoint(ctx, leftElbow, { color: "red" });
                 drawPoint(ctx, leftWrist, { color: "red" });
@@ -193,72 +261,54 @@ export default function CloudChase2({ }) {
 
     runPoseDetection();
 
-    const ref = useRef(null);
-    useEffect(() => {
-        // On first render create our application
-        const app = new Application({
-            width: 800,
-            height: 600,
-            backgroundColor: 0x22A7F0,
+    // Pixi --------------------------------------------------------------------
+    // Async load the stage
+    const loadStage = async () => {
+        app = await new Application({
+            width: videoConstraints.width,
+            height: videoConstraints.height,
+            transparent: false,
+            antialias: true,
         });
 
-        // Add app to DOM
-        ref.current.appendChild(app.view);
-        // Start the PixiJS app
-        app.start();
+        // change the color of the canvas
+        app.renderer.backgroundColor = 0x22A7F0;
 
-        let waterlevel = 0;
-        const rainCloudTexture = PIXI.Texture.from(cloud_1_img);
-        const normalCLoudTexture = PIXI.Texture.from(cloud_2_img);
-        // const cloud3 = PIXI.Sprite.from(cloud_1_img);
-        // const cloud4 = PIXI.Sprite.from(cloud_2_img);
+        // get the pixi-main element
+        const pixiMain = document.getElementById("pixi-main");
 
+        // remove all children from the element
+        while (pixiMain.firstChild) {
+            console.log(pixiMain.firstChild);
+            pixiMain.removeChild(pixiMain.firstChild);
+        }
+
+        // add the canvas to the pixi-main element
+        pixiMain.appendChild(app.view);
+
+
+        // load the texture we need
+        cloudTexture = await PIXI.Texture.from(cloud_1_img);
+        cloudStTexture = await PIXI.Texture.from(cloud_2_img);
+
+        const armLeftTexture = await PIXI.Texture.from(armLeft_img);
+        const armRightTexture = await PIXI.Texture.from(armRight_img);
+
+        const winScreenTexture = await PIXI.Texture.from(winScreen_img);
+        const loseScreenTexture = await PIXI.Texture.from(loseScreen_img);
         const water1 = PIXI.Texture.from(water1_img);
         const water2 = PIXI.Texture.from(water2_img);
         const water3 = PIXI.Texture.from(water3_img);
-        const watering_can = new PIXI.Sprite(water1);
+        const gardenerTexture = PIXI.Texture.from(gardener_img);
 
-        const armLeftTexture = await PIXI.Texture.from(ArmLeftPath);
-        const armRightTexture = await PIXI.Texture.from(ArmRightPath);
-
-        // cloud1.buttonMode = true;
-        // cloud1.anchor.set(0.5);
-        cloud3.anchor.set(1);
-
-        // cloud1.x = app.screen.width / 2;
-        // cloud1.y = app.screen.height / 5;
-        // cloud1.interactive = true;
-        // cloud1.cursor = 'pointer'
-
-        cloud3.x = (app.screen.width / 5) - 200;
-        cloud3.y = app.screen.height / 4;
-        cloud3.interactive = true;
-        cloud3.cursor = 'pointer'
-        watering_can.anchor.set(0);
-        watering_can.x = 0;
-        watering_can.y = 0;
-        // cloud1.hitArea = new Rectangle(0, 0, 100, 50);
-        cloud1.on('mouseover', (event) => {
-            // console.log('tapped');
-            cloud1.x -= 5;
-            cloud1.y += 10;
-        });
-
-        cloud3.on('mouseover', (event) => {
-            // console.log('tapped');
-            cloud3.x -= 5;
-            cloud3.y += 10;
-        });
-        cloud2.anchor.set(0.1)
-        cloud4.anchor.set(0.1)
-        cloud2.x = app.screen.width / 10;
-        cloud2.y = app.screen.height / 8;
-        cloud4.x = (app.screen.width / 10) - 500;
-        cloud4.y = app.screen.height / 8;
 
         // create a new Sprite using the texture
         armLeftSprite = await new Sprite(armLeftTexture);
         armRightSprite = await new Sprite(armRightTexture);
+        gardenerSprite = await new Sprite(gardenerTexture);
+        winScreenSprite = await new Sprite(winScreenTexture);
+        loseScreenSprite = await new Sprite(loseScreenTexture);
+        wateringCanSprite = new PIXI.Sprite(water1);
 
         // armLeftSprite ------------------------------
         // Resize the armLeftSprite
@@ -274,6 +324,8 @@ export default function CloudChase2({ }) {
             videoConstraints.height / 2
         );
 
+        app.stage.addChild(armLeftSprite);
+
         // armRightSprite ------------------------------
         // Resize the armRightSprite
         armRightSprite.width = playerSize;
@@ -288,219 +340,498 @@ export default function CloudChase2({ }) {
             videoConstraints.height / 2
         );
 
-        app.stage.addChild(cloud1);
-        app.stage.addChild(cloud2);
-        app.stage.addChild(cloud3);
-        app.stage.addChild(cloud4);
-        app.stage.addChild(watering_can);
-        app.stage.addChild(armLeftSprite);
         app.stage.addChild(armRightSprite);
 
-        const gardener = PIXI.Sprite.from(gardener_img);
-        gardener.y = app.screen.height / 1.5;
-        app.stage.addChild(gardener);
+        // gardenerSprite ------------------------------
+        // Resize the gardenerSprite
+        gardenerSprite.width = gardenerSize;
+        gardenerSprite.height = gardenerSize;
 
+        // center the sprite's anchor point
+        gardenerSprite.anchor.set(0.5, 0.5);
+
+        // move the sprite to the center of the screen
+        gardenerSprite.position.set(
+            videoConstraints.width / 2,
+            videoConstraints.height - gardenerSize / 2
+        );
+
+        app.stage.addChild(gardenerSprite);
+
+        // winScreenSprite ------------------------------
+        winScreenSprite.anchor.set(0.5, 0.5);
+
+        winScreenSprite.position.set(
+            videoConstraints.width / 2,
+            videoConstraints.height / 2
+        );
+
+        app.stage.addChild(winScreenSprite);
+
+        winScreenSprite.visible = false;
+
+        // loseScreenSprite ------------------------------
+
+        loseScreenSprite.anchor.set(0.5, 0.5);
+
+        loseScreenSprite.position.set(
+            videoConstraints.width / 2,
+            videoConstraints.height / 2
+        );
+
+        app.stage.addChild(loseScreenSprite);
+
+        // Make invisible
+        loseScreenSprite.visible = false;
+
+        // Score Text ------------------------------
+        scoreText = new PIXI.Text(`clouds collected: ${cloudsCollected}/${cloudsToCollect}`, {
+            fontFamily: "Arial",
+            fontSize: 24,
+            fill: 0x000000,
+            align: "center",
+        });
+
+        scoreText.anchor.set(0, 0);
+
+        scoreText.position.set(10, 10);
+
+        app.stage.addChild(scoreText);
+
+        countDownTimerText = new PIXI.Text(`Time left: ${countDownTimer}`, {
+            fontFamily: "Arial",
+            fontSize: 24,
+            fill: 0x000000,
+            align: "center",
+          });
+      
+          countDownTimerText.anchor.set(0, 0);
+      
+          countDownTimerText.position.set(10, 40);
+      
+          app.stage.addChild(countDownTimerText);
+
+        
+
+        // Listen for frame updates
         app.ticker.add(() => {
+            
             updateGame();
         });
+        setInterval(updateCountDown,1000)
 
-        const spawnRainCloud = () => {
-            var rainCloudSprite = new Sprite(rainCloudTexture);
+        // Hide restart button
+        document.getElementById("restartGame").style.display = "none";
+        document.getElementById("nextPage").style.display = "none";
 
-            //resize cloud
-            rainCloudSprite.width = 100
-            rainCloudSprite.height = 100
-            rainCloudSprite.buttonMode = true;
-            rainCloudSprite.anchor.set(0.5);
-            rainCloudSprite.x = app.screen.width / 2;
-            rainCloudSprite.y = app.screen.height / 5;
-            rainCloudSprite.interactive = true;
-            rainCloudSprite.cursor = 'pointer'
+        logVars();
+    };
 
+    const updateCountDown = () =>{
+        let seconds = countDownTimer
+        seconds = seconds<10 ?'0' + seconds : seconds;
+        if(countDownTimer<=-1){
+            return
+        }
+        countDownTimer--;
+        updateStats();
+    }
 
+    const updateGame = () => {
+        // UPDATE POSITIONS -------------------------------------------------------
+        // armLeftSprite ------------------------------
+        // Set the angle
+        armLeftSprite.rotation = Math.atan2(
+            armLeft.elbow.x - armLeft.wrist.x,
+            armLeft.elbow.y - armLeft.wrist.y
+        );
 
-            // Listen for animate update
-            app.ticker.add((delta) => {
-                // just for fun, let's rotate mr rabbit a little
-                // delta is 1 if running at 100% performance
-                // creates frame-independent transformation
-                rainCloudSprites.forEach((rainCloudSprite) => {
-                    rainCloudSprite.x += 0.25 * delta;
-                    rainCloudSprite.x += 0.25 * delta;
-                })
+        // Set the position
+        armLeftSprite.position.set(
+            videoConstraints.width - armLeft.wrist.x,
+            armLeft.elbow.y
+        );
 
-            })
-            rainCloudSprites.push({
-                sprite: rainCloudSprite,
-                status: "alive",
-            });
-
-            app.stage.addChild(rainCloudSprite);
+        // get the hand position based on the armLeftSprite wrist position and the armLeftSprite rotation
+        const leftHandPos = {
+            x:
+                armLeftSprite.x +
+                (playerSize - handDistFromWrists) * Math.sin(armLeftSprite.rotation),
+            y:
+                armLeftSprite.y -
+                (playerSize - handDistFromWrists) * Math.cos(armLeftSprite.rotation),
         };
 
-        loadStage();
+        // armRightSprite ------------------------------
+        // Set the angle
+        armRightSprite.rotation = Math.atan2(
+            armRight.elbow.x - armRight.wrist.x,
+            armRight.elbow.y - armRight.wrist.y
+        );
 
-        app.stage.interactive = true;
-        app.stage.hitArea = app.screen;
-        const updateGame = () => {
-            // UPDATE POSITIONS -------------------------------------------------------
-            // armLeftSprite ------------------------------
-            // Set the angle
-            armLeftSprite.rotation = Math.atan2(
-                armLeft.elbow.x - armLeft.wrist.x,
-                armLeft.elbow.y - armLeft.wrist.y
-            );
+        // Set the position
+        armRightSprite.position.set(
+            videoConstraints.width - armRight.wrist.x,
+            armRight.elbow.y
+        );
 
-            // Set the position
-            armLeftSprite.position.set(
-                videoConstraints.width - armLeft.wrist.x,
-                armLeft.elbow.y
-            );
+        const rightHandPos = {
+            x:
+                armRightSprite.x +
+                (playerSize - handDistFromWrists) * Math.sin(armRightSprite.rotation),
+            y:
+                armRightSprite.y -
+                (playerSize - handDistFromWrists) * Math.cos(armRightSprite.rotation),
+        };
 
-            // get the hand position based on the armLeftSprite wrist position and the armLeftSprite rotation
-            const leftHandPos = {
-                x: armLeftSprite.x + (playerSize - handDistFromWrists) * Math.sin(armLeftSprite.rotation),
-                y: armLeftSprite.y - (playerSize - handDistFromWrists) * Math.cos(armLeftSprite.rotation),
-            };
+        // Update the clouds --------------------------------------------------------
 
-            // armRightSprite ------------------------------
-            // Set the angle
-            armRightSprite.rotation = Math.atan2(
-                armRight.elbow.x - armRight.wrist.x,
-                armRight.elbow.y - armRight.wrist.y
-            );
+        if (gameState === "playing") {
+            if (cloudSprites.length< maxNumberOfclouds || cloudStSprites.length<maxNumberOfStClouds) {
+                // check that cloud spawn time has passed
+                if (Date.now() - lastcloudSpawnTime > cloudSpawnTime) {
+                    // spawn a cloud
+                    spawncloud();
+                    spawncloudSt();
 
-            // Set the position
-            armRightSprite.position.set(
-                videoConstraints.width - armRight.wrist.x,
-                armRight.elbow.y
-            );
+                    // reset the last cloud spawn time
+                    lastcloudSpawnTime = Date.now();
+                }
+            }
 
-            const rightHandPos = {
-                x: armRightSprite.x + (playerSize - handDistFromWrists) * Math.sin(armRightSprite.rotation),
-                y: armRightSprite.y - (playerSize - handDistFromWrists) * Math.cos(armRightSprite.rotation),
-            };
+            cloudStSprites.forEach((cloudStSprite) => {
+                cloudStSprite.sprite.x += 0.15;
+            })
 
+            // cloudSprites ------------------------------
+            cloudSprites.forEach((cloudSprite) => {
+                // Get the distance between the cloud and the gardener
+                const distance = Math.sqrt(
+                    Math.pow(gardenerSprite.x - cloudSprite.sprite.x, 2) +
+                    Math.pow(gardenerSprite.y - cloudSprite.sprite.y, 2)
+                );
 
+                if (cloudSprite.status === "untouch") {
+                    // Move the cloud sprite from where it is towards the gardener by cloudSpeed pixels
+                    randomCloud += 1;
+                    cloudSprite.sprite.x += 0.25;
+                    if (randomCloud % 20 == 0) {
+                        cloudSprite.sprite.position.y -=
+                            ((gardenerSprite.position.y - cloudSprite.sprite.position.y) /
+                                distance)
 
-            app.stage.on('mousemove', (event) => {
-                mouseposition = mouseposition || { x: 0, y: 0 };
-                mouseposition.x = hand_mouseposition.x;
-                mouseposition.y = hand_mouseposition.y;
-                console.log(mouseposition.x, mouseposition.y)
-                // console.log(mouseposition.y)
-                if (mouseposition.x < 2.5) {
-                    gardener.x = 2.5;
-                } else if (mouseposition.x > 620) {
-                    gardener.x = 620;
-                } else {
-                    gardener.x = mouseposition.x;
+                        randomCloud = 0;
+                    }
+
+                } else if (cloudSprite.status === "touch") {
+                    cloudSprite.sprite.position.set(
+                        cloudSprite.sprite.position.x +
+                        ((gardenerSprite.position.x - cloudSprite.sprite.position.x) /
+                            distance) *
+                        2,
+                        cloudSprite.sprite.position.y +
+                        ((gardenerSprite.position.y - cloudSprite.sprite.position.y) /
+                            distance) *
+                        2
+                    );
+                    // cloudSprite.sprite.x -=5;
+                    // cloudSprite.sprite.y +=10;
+                    cloudSprite.status = "untouch"
+
                 }
 
-                if (cloud1.y > 430) {
-                    //remove instance add point
-                    app.stage.removeChild(cloud1);
-                    cloud1.y = 0;
-                    waterlevel = 1;
-                    console.log("WATERED");
+                // UPDATE COLLISIONS ------------------------------------------------------
+                // Check if the cloud is off the screen
+                if (
+                    cloudSprite.sprite.x + cloudWidth / 2 < 0 ||
+                    cloudSprite.sprite.x - cloudWidth / 2 > videoConstraints.width ||
+                    cloudSprite.sprite.y + cloudHeight / 2 < 0 ||
+                    cloudSprite.sprite.y - cloudHeight / 2 > videoConstraints.height
+                ) {
+                    cloudSprite.status = "despawn";
                 }
 
-                if (cloud3.y > 430) {
-                    //remove instance add point
-                    app.stage.removeChild(cloud3);
-                    cloud3.y = 0;
-                    waterlevel = 2;
-                    console.log("DONE");
+                // Check if the cloud is touching the gardener
+                if (
+                    distance < gardenerRadius + cloudHeight / 2 &&
+                    cloudSprite.status === "untouch"
+                ) {
+                    // Kill the cloud, cloud touched gardener
+                    cloudSprite.status = "despawn";
+
+                    // reduce lives left
+                    cloudsCollected++;
+                    //   livesLeft--;
+                    updateStats();
                 }
 
-                if (waterlevel == 1) {
-                    watering_can.texture = water2;
-                } else if (waterlevel == 2) {
-                    watering_can.texture = water3;
+                // Check if the cloud is touching the left hand
+                if (
+                    Math.sqrt(
+                        Math.pow(leftHandPos.x - cloudSprite.sprite.x, 2) +
+                        Math.pow(leftHandPos.y - cloudSprite.sprite.y, 2)
+                    ) <
+                    handRadius + cloudHeight / 2 &&
+                    cloudSprite.status === "untouch"
+                ) {
+                    //move cloud to farmer
+                    cloudSprite.status = "touch";
+
+
+                    updateStats();
                 }
 
+                // Check if the cloud is touching the right hand
+                if (
+                    Math.sqrt(
+                        Math.pow(rightHandPos.x - cloudSprite.sprite.x, 2) +
+                        Math.pow(rightHandPos.y - cloudSprite.sprite.y, 2)
+                    ) <
+                    handRadius + cloudHeight / 2 &&
+                    cloudSprite.status === "untouch"
+                ) {
+                    //move cloud to farmer
+                    cloudSprite.status = "touch";
 
+
+
+                    updateStats();
+                }
+
+                // Check if game over
+                if (countDownTimer <= 0) {
+                  gameLoss();
+                }
+                if (cloudsCollected >= cloudsToCollect) {
+                    gameWin();
+                }
             });
 
+            // for each cloud if it is despawned remove it from the cloudSprites array and remove it from the stage
+            cloudSprites.forEach((cloudSprite, index) => {
+                if (cloudSprite.status === "despawn") {
+                    cloudSprites.splice(index, 1);
+                    app.stage.removeChild(cloudSprite.sprite);
+                }
+            });
+        }
+    };
 
-            // // Listen for animate update
-            // app.ticker.add((delta) => {
-            //     // just for fun, let's rotate mr rabbit a little
-            //     // delta is 1 if running at 100% performance
-            //     // creates frame-independent transformation
-            //     rainCloudSprites.forEach((rainCloudSprite)=>{
-            //         rainCloudSprite.x += 0.25 * delta;
-            //         rainCloudSprite.x += 0.25 * delta;
-            //     })
-            // cloud1.x += 0.25 * delta;
-            // cloud3.x += 0.25 * delta;
-            cloud2.x += 0.1 * delta;
-            cloud4.x += 0.1 * delta;
+    const updateStats = () => {
+        scoreText.text = `clouds collected: ${cloudsCollected}/${cloudsToCollect}`;
+        countDownTimerText.text = `Time left: ${countDownTimer}`;
+    };
 
+    const spawncloud = () => {
+        // create a new Sprite using the texture
+        // cloudSprite ------------------------------
+        var cloudSprite = new Sprite(cloudTexture);
+
+        // Resize the cloudSprite
+        cloudSprite.width = cloudWidth;
+        cloudSprite.height = cloudHeight;
+
+        // center the sprite's anchor point
+        cloudSprite.anchor.set(0.5);
+
+        // left
+        cloudSprite.position.set(
+            -cloudHeight / 2,
+            Math.floor(((Math.random() * videoConstraints.height) / 4) * 3)
+        );
+
+        cloudSprites.push({
+            sprite: cloudSprite,
+            status: "untouch",
         });
 
-
-    return () => {
-        // On unload completely destroy the application and all of it's children
-        app.destroy(true, true);
+        app.stage.addChild(cloudSprite);
     };
-}, []);
+
+    const spawncloudSt = () => {
+        // create a new Sprite using the texture
+        // stationary cloudSprite ------------------------------
+        var cloudStSprite = new Sprite(cloudStTexture);
+
+        // Resize the cloudSprite
+        cloudStSprite.width = cloudWidth_st;
+        cloudStSprite.height = cloudHeight_st;
+
+        // center the sprite's anchor point
+        cloudStSprite.anchor.set(0.5);
+
+        // left
+        cloudStSprite.position.set(
+            -cloudHeight_st / 2,
+            Math.floor(((Math.random() * videoConstraints.height) / 4) * 3)
+        );
+
+        cloudStSprites.push({
+            sprite: cloudStSprite,
+            status: "untouched",
+        });
+
+        // app.stage.addChild(cloudStSprite);
+    };
+
+    loadStage();
+
+    // Game --------------------------------------------------------------------
+    const startGame = () => {
+        // Start the game loop
+        gameState = "playing";
+        // get current time in milliseconds
+        gameTimer = Date.now();
+        lastcloudSpawnTime = Date.now();
+
+        updateStats();
+
+        // hide the start button
+        document.getElementById("startGame").style.display = "none";
+        // show restart button
+        document.getElementById("restartGame").style.display = "block";
+
+        logVars();
+    };
+
+    const restartGame = () => {
+        // reset game variables
+        cloudsCollected = 0;
+        // livesLeft = 3;
+        countDownTimer = 50;
+        gameTimer = 0;
+        lastcloudSpawnTime = 0;
 
 
+        gameState = "playing";
 
+        // Remove the Game over or the You win image if any
+        loseScreenSprite.visible = false;
+        winScreenSprite.visible = false;
 
-return (
-    <div>
-        <h1>Cloud Chase Pixi page</h1>
-        <p>drag the clouds to collect water for the plants!</p>
-        {/* tracker body */}
-        <div id="tracker-main">
+        updateStats();
 
+        logVars();
+    };
 
-            <div id="canvas-container" className="container">
-                <canvas
-                    ref={canvasRef}
-                    style={{
-                        width: videoConstraints.width,
-                        height: videoConstraints.height,
-                        position: "absolute",
-                        left: marginLeftCamera,
-                        top: marginTopCamera,
-                        zIndex: 2,
-                    }}
-                />
-            </div>
+    const removeAllclouds = () => {
 
-            <div id="webcam-container" className="container">
-                <Webcam
-                    ref={webcamRef}
-                    audio={false}
-                    height={videoConstraints.height}
-                    screenshotFormat="image/jpeg"
-                    width={videoConstraints.width}
-                    videoConstraints={videoConstraints}
-                    mirrored={true}
-                    style={{
-                        position: "absolute",
-                        left: marginLeftCamera,
-                        top: marginTopCamera,
-                        zIndex: 1,
-                    }}
+        // remove all clouds from the stage
+        cloudSprites.forEach((cloudSprite) => {
+            app.stage.removeChild(cloudSprite.sprite);
+        });
 
-                ></Webcam>
+        // clear the cloudSprites array
+        cloudSprites = [];
+    };
 
-                {/* create game body */}
-                <div id="cloud-container" className="container" style={{
-                    position: "absolute",
-                    left: marginLeftPixi,
-                    top: marginTopPixi,
-                    zIndex: 1,
-                }}
-                >
-                    <div id="pixi-main" ref={ref} ></div>
+    const gameLoss = () => {
+        // End the game loop
+        gameState = "gameOver";
+        gameWon = false;
+
+        removeAllclouds();
+
+        loseScreenSprite.visible = true;
+
+        logVars();
+    };
+
+    const gameWin = () => {
+        // End the game loop
+        gameState = "gameOver";
+        gameWon = true;
+
+        removeAllclouds();
+
+        winScreenSprite.visible = true;
+
+        document.getElementById("nextPage").style.display = "block";
+
+        logVars();
+    };
+
+    const goToNextPage = () => {
+        window.location.href = "https://www.google.com";
+    };
+
+    const logVars = () => {
+        console.log(cloudSprites);
+        //print cloudSprites position
+        cloudSprites.forEach((cloudSprite) => {
+            console.log(cloudSprite.sprite.position);
+        });
+
+        console.log("cloudsCollected: " + cloudsCollected);
+        console.log("gameState: " + gameState);
+        console.log("gameWon: " + gameWon);
+    };
+
+    return (
+        <div>
+            <h1>cloud chasing </h1>
+            <p>Collect water form the clouds!</p>
+            <div id="cloud-swat-main">
+                <div id="canvas-container" className="container">
+                    <canvas
+                        ref={canvasRef}
+                        style={{
+                            width: videoConstraints.width,
+                            height: videoConstraints.height,
+                            position: "absolute",
+                            left: marginLeftCamera,
+                            top: marginTopCamera,
+                            zIndex: 2,
+                        }}
+                    />
+                </div>
+
+                <div id="webcam-container" className="container">
+                    <Webcam
+                        ref={webcamRef}
+                        audio={false}
+                        height={videoConstraints.height}
+                        screenshotFormat="image/jpeg"
+                        width={videoConstraints.width}
+                        videoConstraints={videoConstraints}
+                        mirrored={true}
+                        style={{
+                            position: "absolute",
+                            left: marginLeftCamera,
+                            top: marginTopCamera,
+                            zIndex: 1,
+                        }}
+                    ></Webcam>
+
+                    <div
+                        id="cloud-container"
+                        className="container"
+                        style={{
+                            position: "absolute",
+                            left: marginLeftPixi,
+                            top: marginTopPixi,
+                            zIndex: 1,
+                        }}
+                    >
+                        <div id="pixi-main"></div>
+                        <div id="buttons-container">
+                            <button onClick={loadStage}>Load Stage</button>
+
+                            <button id="startGame" onClick={startGame}>
+                                Start Game
+                            </button>
+                            <button id="restartGame" onClick={restartGame}>
+                                Restart Game
+                            </button>
+                            <button id="nextPage" onClick={goToNextPage}>
+                                Next
+                            </button>
+
+                            {/* <button onClick={logVars}>Log Vars</button> */}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
 }
