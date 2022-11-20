@@ -165,7 +165,7 @@ export default function TrackerTest({}) {
               height: videoConstraints.height,
               position: "absolute",
               left: 0,
-              top: 0,
+              top: 100,
               zIndex: 2,
             }}
           />
@@ -183,7 +183,7 @@ export default function TrackerTest({}) {
             style={{
               position: "absolute",
               left: 0,
-              top: 0,
+              top: 100,
               zIndex: 1,
             }}
 

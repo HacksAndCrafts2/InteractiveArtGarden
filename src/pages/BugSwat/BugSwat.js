@@ -767,8 +767,8 @@ export default function BugSwat({}) {
 
   return (
     <div>
-      <h1>Bug Swat Test</h1>
-      <p>Swat the bugs with your hands!</p>
+      <h1>Bug Swat</h1>
+      <p>Swat the bugs with your hands and protect your plant!</p>
       <div id="bug-swat-main">
         <div id="canvas-container" className="container">
           <canvas
