@@ -699,13 +699,6 @@ export default function BugSwat({}) {
     gameTimer = 0;
     lastBugSpawnTime = 0;
 
-    // remove all bugs from the stage
-    bugSprites.forEach((bugSprite) => {
-      app.stage.removeChild(bugSprite.sprite);
-    });
-
-    // clear the bugSprites array
-    bugSprites = [];
 
     gameState = "playing";
 
@@ -718,10 +711,23 @@ export default function BugSwat({}) {
     logVars();
   };
 
+  const removeAllBugs = () => {
+    
+    // remove all bugs from the stage
+    bugSprites.forEach((bugSprite) => {
+      app.stage.removeChild(bugSprite.sprite);
+    });
+
+    // clear the bugSprites array
+    bugSprites = [];
+  };
+
   const gameLoss = () => {
     // End the game loop
     gameState = "gameOver";
     gameWon = false;
+
+    removeAllBugs();
 
     loseScreenSprite.visible = true;
 
@@ -732,6 +738,8 @@ export default function BugSwat({}) {
     // End the game loop
     gameState = "gameOver";
     gameWon = true;
+
+    removeAllBugs();
 
     winScreenSprite.visible = true;
 
