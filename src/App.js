@@ -4,6 +4,7 @@ import TrackerTest from "./pages/TrackerTest/TrackerTest";
 import BugSwat from "./pages/BugSwat/BugSwat";
 import PixiTest from "./pages/PixiTest/PixiTest";
 import "./App.css";
+import GenerativeTest from "./pages/GenerativeTest/GenerativeTest";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/tracker-test" element={<TrackerTest />} />
           <Route path="/bug-swat" element={<BugSwat />} />
           <Route path="/pixi-test" element={<PixiTest />} />
+          <Route path="/generate-test" element={<GenerativeTest />} />
           <Route path="*" element={<HomePage /> /* <NotFound /> */} />
         </Routes>
       </BrowserRouter>

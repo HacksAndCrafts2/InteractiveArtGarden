@@ -35,7 +35,7 @@ export default function BugSwat({}) {
   const defaultImageSize = 600;
 
   // Game variables -----------------------------------------------------------
-  // relative to the 600 x 450 video
+  // relative to the 600 x 450 video (need to update if the videoConstraints are changed)
   const bugSize = 25;
   const bugSpeed = 3;
   const bugSpawnTime = 1000;

@@ -38,9 +38,8 @@ export default function PixiTest({}) {
     // add the canvas to the pixi-main element
     pixiMain.appendChild(app.view);
 
-    var BugPath = await IMAGES.Bug
+    var BugPath = await IMAGES.EyeUp
 
-    console.log(BugPath)
 
     // load the texture we need
     const armTexture = PIXI.Texture.from(BugPath);
@@ -55,7 +54,7 @@ export default function PixiTest({}) {
     arm.y = app.renderer.height / 2;
 
     // center the sprite's anchor point
-    arm.anchor.set(0.5, 1)
+    arm.anchor.set(0.5, 0.5)
 
     // move the sprite to the center of the screen
     arm.position.set(videoConstraints.width / 2, videoConstraints.height / 2);
