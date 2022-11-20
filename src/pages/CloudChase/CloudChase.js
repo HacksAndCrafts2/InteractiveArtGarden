@@ -772,7 +772,7 @@ export default function CloudChase({ }) {
             <h1>cloud chasing </h1>
             <p>Collect water form the clouds!</p>
             <div id="cloud-swat-main">
-                <div id="canvas-container" className="container">
+                <div id="canvas-container">
                     <canvas
                         ref={canvasRef}
                         style={{
@@ -786,7 +786,7 @@ export default function CloudChase({ }) {
                     />
                 </div>
 
-                <div id="webcam-container" className="container">
+                <div id="webcam-container" >
                     <Webcam
                         ref={webcamRef}
                         audio={false}
@@ -805,7 +805,6 @@ export default function CloudChase({ }) {
 
                     <div
                         id="cloud-container"
-                        className="container"
                         style={{
                             position: "absolute",
                             left: marginLeftPixi,
