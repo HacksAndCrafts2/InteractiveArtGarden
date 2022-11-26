@@ -1,5 +1,6 @@
 import React from "react";
 import * as PIXI from "pixi.js";
+import "./HomePage.css";
 
 export default function HomePage({}) {
   const pixiBannerSize = {
@@ -13,37 +14,19 @@ export default function HomePage({}) {
       <div class="">
         <div class="jumbotron" id="jumbotron-header">
           <div id="pixi-main"></div>
-          {/* <h1 class="display-4">Hello, world!</h1> */}
+          <h1 class="display-4">Interactive Art Garden</h1>
           <p class="lead">
-            This is a simple hero unit, a simple jumbotron-style component for
-            calling extra attention to featured content or information.
+            A fun little project to explore the use of Tensorflow js pre-trained
+            models in a web app, and to play around with Pixi.js in React.
           </p>
           <hr class="my-4" />
-          <p>
-            It uses utility classes for typography and spacing to space content
-            out within the larger container.
-          </p>
-          <a class="btn btn-primary btn-lg" href="#" role="button">
-            Learn more
-          </a>
+          <p>Come explore our weird and whacky Interactive Art Garden</p>
+
         </div>
       </div>
 
       {/* Bootstrap cards */}
-      {/* 
-      make cards for each of these
-     
-      <Route path="/" element={<HomePage />} />
-          <Route path="/tracker-test" element={<TrackerTest />} />
-          <Route path="/bug-swat" element={<BugSwat />} />
-          <Route path="/pixi-test" element={<PixiTest />} />
-          <Route path="/generate-test" element={<GenerativeTest />} />
-          <Route path="*" element={<HomePage /> /* <NotFound /> 
-              <Route path="/cloud-chase" element={<CloudChase />} />
-          <Route path="/cloud-chase2" element={<CloudChase2 />} />
-          <Route path="*" element={<HomePage /> /* <NotFound /> 
-      */}
-      <div class="card-deck">
+      <div class="cards-container">
         <div className="card" style={{ width: "18rem" }}>
           <div className="card-body">
             <h5 className="card-title">Bug Swat</h5>

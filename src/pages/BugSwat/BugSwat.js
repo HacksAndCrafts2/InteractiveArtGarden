@@ -770,7 +770,7 @@ export default function BugSwat({}) {
       <h1>Bug Swat</h1>
       <p>Swat the bugs with your hands and protect your plant!</p>
       <div id="bug-swat-main">
-        <div id="canvas-container" className="container">
+        <div id="canvas-container">
           <canvas
             ref={canvasRef}
             style={{
@@ -784,7 +784,7 @@ export default function BugSwat({}) {
           />
         </div>
 
-        <div id="webcam-container" className="container">
+        <div id="webcam-container">
           <Webcam
             ref={webcamRef}
             audio={false}
@@ -803,7 +803,6 @@ export default function BugSwat({}) {
 
           <div
             id="bug-container"
-            className="container"
             style={{
               position: "absolute",
               left: marginLeftPixi,
